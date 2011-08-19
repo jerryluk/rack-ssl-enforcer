@@ -10,6 +10,7 @@ module Rack
         :only_hosts => nil,
         :except => nil,
         :except_hosts => nil,
+        :url => nil,
         :strict => false,
         :mixed => false,
         :hsts => nil,
@@ -66,6 +67,8 @@ module Rack
     def matches?(key, pattern, req)
       if pattern.is_a?(Regexp)
         case key
+        when :url
+          req.url =~ pattern
         when :only
           req.path =~ pattern
         when :except
@@ -77,6 +80,8 @@ module Rack
         end
       else
         case key
+        when :url
+          req.url == pattern
         when :only
           req.path[0,pattern.length] == pattern
         when :except
@@ -107,7 +112,11 @@ module Rack
     def enforce_ssl?(req)
       path_keys = [:only, :except]
       hosts_keys = [:only_hosts, :except_hosts]
-      if hosts_keys.any? { |option| @options[option] }
+      url_keys = [:url]
+      
+      if url_keys.any? { |option| @options[option] }
+        enforce_ssl_for?(url_keys, req)
+      elsif hosts_keys.any? { |option| @options[option] }
         if enforce_ssl_for?(hosts_keys, req)
           if path_keys.any? { |option| @options[option] }
             enforce_ssl_for?(path_keys, req)
